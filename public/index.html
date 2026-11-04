@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8eff8">
+  <meta name="description" content="Bảng điều khiển Nhà thông minh ESP32 qua Firebase Realtime Database">
+  <title>Nhà thông minh | Bảng điều khiển IoT</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230ea5e9'/%3E%3Ctext x='50%25' y='57%25' font-size='36' text-anchor='middle'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./firebase-config.js"></script>
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <section class="auth-screen" id="auth-screen" aria-labelledby="login-heading">
+    <div class="auth-intro"><a class="auth-brand" href="./">⌂ <strong>SMART<span>HOME</span></strong></a><p class="eyebrow">ESP32 IOT SYSTEM</p><h1>Ngôi nhà thông minh,<br>luôn trong tầm tay.</h1><p>Đăng nhập để theo dõi cảm biến, xem lịch sử hoạt động và điều khiển thiết bị trong nhà.</p><div class="auth-features"><span>◉ Theo dõi trực tuyến</span><span>🚪 Điều khiển cửa</span><span>◷ Nhật ký theo thời gian</span></div></div>
+    <article class="card connection-card auth-card">
+      <div class="card-heading"><div><p class="eyebrow">CHÀO MỪNG TRỞ LẠI</p><h2 id="login-heading">Đăng nhập quản trị</h2></div><span class="icon-tile sky">⌂</span></div>
+      <div class="cloud-status"><span class="indicator waiting" id="cloud-indicator"></span><span id="cloud-message">Đang kết nối dịch vụ đăng nhập...</span></div>
+      <p class="connection-note" id="config-hint">Dùng tài khoản được cấp quyền quản trị ngôi nhà.</p>
+      <form id="login-form" class="login-form">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required placeholder="Nhập email của bạn">
+        <label for="password">Mật khẩu</label>
+        <input id="password" type="password" autocomplete="current-password" required placeholder="Nhập mật khẩu">
+        <p class="login-error" id="login-error" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary" id="login-btn" disabled>ĐANG KẾT NỐI...</button>
+      </form>
+      <button class="demo-link" id="demo-btn" type="button">◉ Xem giao diện mẫu (dữ liệu giả lập)</button>
+      <p class="auth-footnote">Smart Home · Kết nối qua Firebase</p>
+    </article>
+  </section>
+  <div class="app-shell" id="app-shell" hidden>
+    <aside class="sidebar" aria-label="Thanh điều hướng">
+      <a class="brand" href="#tong-quan" aria-label="Nhà thông minh, về trang tổng quan">
+        <span class="brand-mark" aria-hidden="true">⌂</span>
+        <span class="brand-wordmark"><strong>SMART<span>HOME</span></strong><small>ESP32 IoT SYSTEM</small></span>
+      </a>
+      <div class="nav-title">HỆ THỐNG</div>
+      <nav class="side-nav">
+        <a class="nav-link active" href="#tong-quan"><span class="nav-icon">▦</span> Tổng quan</a>
+        <a class="nav-link" href="#cam-bien"><span class="nav-icon">◉</span> Cảm biến</a>
+        <a class="nav-link" href="#cua-tu-dong"><span class="nav-icon">🚪</span> Cửa tự động</a>
+        <a class="nav-link" href="#trang-thai"><span class="nav-icon">◈</span> Trạng thái</a>
+        <a class="nav-link" href="#dieu-khien"><span class="nav-icon">⚡</span> Điều khiển</a>
+        <a class="nav-link" href="#nhat-ky"><span class="nav-icon">≡</span> Nhật ký</a>
+        <a class="nav-link" href="#lich-su-cua"><span class="nav-icon">◷</span> Lịch sử cửa</a>
+      </nav>
+      <div class="side-bottom">
+        <div class="device-badge"><span class="status-dot" id="side-dot"></span><span id="side-connection">Chưa kết nối thiết bị</span></div>
+        <p>Thiết kế cho hệ thống nhà thông minh dùng ESP32 và Firebase Realtime Database.</p>
+        <small>Smart Home Dashboard · v1.0</small>
+      </div>
+    </aside>
+
+    <div class="main-area" id="tong-quan">
+      <header class="topbar">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Mở hoặc đóng menu" aria-expanded="false">☰</button>
+        <div class="breadcrumb">HỆ THỐNG <span>/</span> <b>TỔNG QUAN</b></div>
+        <div class="topbar-right">
+          <span class="live-clock" id="clock">--:--:--</span>
+          <span class="date-text" id="date">--/--/----</span>
+          <button type="button" class="btn btn-outline exit-demo" id="exit-demo-btn" hidden>Thoát xem mẫu</button>
+          <div class="logged-in topbar-account" id="logged-in" hidden><span class="user-label"><strong id="user-email">—</strong></span><button class="btn btn-outline" id="logout-btn" type="button">Đăng xuất</button></div>
+          <span class="top-avatar" title="Bảng điều khiển nhà thông minh">IoT</span>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-title-row">
+          <div>
+            <p class="eyebrow">BẢNG ĐIỀU KHIỂN TRỰC TUYẾN</p>
+            <h1>Nhà thông minh <span class="wave">✦</span></h1>
+            <p class="subtitle">Theo dõi cảm biến và điều khiển thiết bị từ bất kỳ đâu.</p>
+            <p class="full-date" id="full-date">Đang cập nhật ngày tháng năm...</p>
+          </div>
+          <div class="mode-pill" id="mode-pill"><span class="status-dot"></span> CHỜ KẾT NỐI</div>
+        </div>
+
+        <section class="hero-grid">
+          <article class="hero-card">
+            <div class="hero-topline"><span class="hero-icon">⌂</span><span class="hero-label">SMART HOME CONTROL CENTER</span></div>
+            <h2>Ngôi nhà trong tầm tay bạn.</h2>
+            <p>Giám sát môi trường, kiểm tra trạng thái cửa, cảnh báo khí gas và điều khiển đèn, quạt trực tiếp trên trình duyệt.</p>
+            <div class="hero-metrics">
+              <div><strong>04</strong><span>Cảm biến</span></div>
+              <div><strong>02</strong><span>Thiết bị</span></div>
+              <div><strong>24/7</strong><span>Giám sát*</span></div>
+            </div>
+          </article>
+          <article class="card connection-card home-status-card">
+            <div class="card-heading"><div><p class="eyebrow">NGÔI NHÀ CỦA BẠN</p><h3>Kết nối thiết bị</h3></div><span class="icon-tile sky">☁</span></div>
+            <h2 id="home-status">Đang chờ ESP32</h2><p id="home-status-detail">Dữ liệu cảm biến sẽ xuất hiện khi thiết bị kết nối.</p>
+            <div class="home-status-links"><a href="#cua-tu-dong">🚪 Mở cửa ra ngoài <span>→</span></a><a href="#lich-su-cua">◷ Xem lịch sử cửa <span>→</span></a><a href="#wifi-setup">☁ Hướng dẫn đổi Wi-Fi cho ESP32 <span>→</span></a></div>
+          </article>
+        </section>
+
+        <details class="card wifi-guide section-block" id="wifi-setup"><summary>☁ Đổi Wi-Fi cho ESP32 khi chuyển địa điểm</summary><div><p>ESP32 gửi dữ liệu trực tiếp qua Wi-Fi → Firebase → website. Bạn có thể mở web bằng mạng khác hoặc 4G/5G.</p><ol><li>Cấp nguồn cho ESP32. Khi chưa có mạng đã lưu hoặc kết nối thất bại, thiết bị phát Wi-Fi <strong>SmartHome-Setup</strong>.</li><li>Đứng gần thiết bị, dùng điện thoại kết nối mạng cài đặt này bằng mật khẩu được cấp riêng trong <code>esp32/secrets.py</code>. Chọn giữ kết nối nếu điện thoại báo không có Internet.</li><li>Mở trình duyệt, nhập <code>http://192.168.4.1</code>, điền tên và mật khẩu Wi-Fi <strong>2.4 GHz</strong> có Internet, rồi bấm lưu.</li><li>Quay lại mạng Internet thông thường và mở website này. ESP32 nhớ mạng vừa lưu, tự gửi dữ liệu và tự kết nối lại khi bật nguồn.</li></ol><p>Chỉ cần nạp chương trình ban đầu qua USB. Khi sử dụng, có thể cấp nguồn bằng sạc USB phù hợp; máy tính không cần chạy. Mạng Wi-Fi yêu cầu đăng nhập qua trang web hoặc tài khoản doanh nghiệp chưa được hỗ trợ.</p></div></details>
+
+        <section id="cua-tu-dong" class="section-block" aria-labelledby="door-heading">
+          <div class="section-heading"><div><p class="eyebrow">SMART ENTRANCE</p><h2 id="door-heading">Cửa tự động</h2></div><span class="section-detail">Tự động phía ngoài · Bấm mở khi ra</span></div>
+          <article class="card door-card">
+            <div class="door-overview">
+              <div class="door-illustration" id="door-visual" aria-hidden="true"><div class="door-frame"><div class="door-leaf"><span></span></div></div><div class="door-ground"></div></div>
+              <div class="door-summary"><span class="tag info">HC-SR04 + SERVO SG90</span><h3 id="door-status">Chờ kết nối cửa</h3><p id="door-action" aria-live="polite">Đăng nhập và kết nối ESP32 để xem trạng thái cửa.</p></div>
+            </div>
+            <div class="door-details">
+              <div class="door-sensor"><div><span class="door-label">CẢM BIẾN PHÍA NGOÀI</span><strong><span id="door-distance">--</span> <small>cm</small></strong></div><span class="tag" id="door-presence">CHỜ DỮ LIỆU</span></div>
+              <p class="door-rule">Tự mở khi có người/vật trong <strong id="door-limit">5 cm</strong>. Giữ mở khi còn vật cản; đóng sau <strong id="door-hold">5 giây</strong> vùng trống.</p>
+              <button type="button" class="btn btn-primary" id="door-open-btn" disabled>🚪 MỞ CỬA ĐỂ RA NGOÀI</button>
+              <p class="device-feedback" id="door-feedback" aria-live="polite">Cần đăng nhập và kết nối ESP32 để mở cửa.</p>
+              <p class="door-note">Phía trong dùng nút mở trên web. Một HC-SR04 chỉ theo dõi vùng phía ngoài, không nhận biết vật cản phía trong.</p>
+            </div>
+            <div class="door-demo" id="door-demo-controls" hidden><div><strong>Thử cảm biến phía ngoài</strong><p>Dữ liệu mô phỏng trong trình duyệt, không tác động cửa thật.</p></div><button type="button" class="btn btn-outline" id="door-demo-person" aria-pressed="false">Mô phỏng có người phía ngoài</button></div>
+          </article>
+        </section>
+
+        <section id="cam-bien" class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">REAL-TIME MONITORING</p><h2>Thông số môi trường</h2></div><span class="section-detail">Cập nhật từ ESP32 <span class="tiny-dot">·</span> <strong id="last-sync">Chưa có dữ liệu</strong></span></div>
+          <div class="sensor-grid">
+            <article class="card sensor-card">
+              <div class="sensor-top"><span class="icon-tile coral">🌡️</span><span class="tag" id="temp-tag">CHỜ DỮ LIỆU</span></div>
+              <p class="sensor-label">NHIỆT ĐỘ</p>
+              <div class="sensor-number"><strong id="temp-value">--</strong><span>°C</span></div>
+              <p class="sensor-description" id="temp-desc">Đang chờ dữ liệu...</p>
+              <div class="meter"><span id="temp-bar" style="width:0%;background:#fb7185"></span></div>
+              <div class="sensor-bottom"><span>DHT22</span><span>0–50°C (thang hiển thị)</span></div>
+            </article>
+            <article class="card sensor-card">
+              <div class="sensor-top"><span class="icon-tile sky">💧</span><span class="tag" id="hum-tag">CHỜ DỮ LIỆU</span></div>
+              <p class="sensor-label">ĐỘ ẨM</p>
+              <div class="sensor-number"><strong id="hum-value">--</strong><span>%</span></div>
+              <p class="sensor-description" id="hum-desc">Đang chờ dữ liệu...</p>
+              <div class="meter"><span id="hum-bar" style="width:0%;background:#38bdf8"></span></div>
+              <div class="sensor-bottom"><span>DHT22</span><span>0–100% RH</span></div>
+            </article>
+            <article class="card sensor-card">
+              <div class="sensor-top"><span class="icon-tile amber">♨</span><span class="tag" id="gas-tag">CHỜ DỮ LIỆU</span></div>
+              <p class="sensor-label">KHÍ GAS (MQ-2)</p>
+              <div class="sensor-number"><strong id="gas-value">--</strong><span>ADC</span></div>
+              <p class="sensor-description" id="gas-desc">Đang chờ dữ liệu...</p>
+              <div class="meter"><span id="gas-bar" style="width:0%;background:#f59e0b"></span></div>
+              <div class="sensor-bottom"><span>MQ-2</span><span>0–4095 (ADC)</span></div>
+            </article>
+            <article class="card sensor-card">
+              <div class="sensor-top"><span class="icon-tile violet">⌁</span><span class="tag" id="dist-tag">CHỜ DỮ LIỆU</span></div>
+              <p class="sensor-label">KHOẢNG CÁCH</p>
+              <div class="sensor-number"><strong id="dist-value">--</strong><span id="dist-unit">cm</span></div>
+              <p class="sensor-description" id="dist-desc">Đang chờ dữ liệu...</p>
+              <div class="meter"><span id="dist-bar" style="width:0%;background:#a78bfa"></span></div>
+              <div class="sensor-bottom"><span>HC-SR04</span><span>0–100 cm (thang hiển thị)</span></div>
+            </article>
+          </div>
+        </section>
+
+        <div class="bottom-grid">
+          <section id="trang-thai" class="section-block">
+            <div class="section-heading"><div><p class="eyebrow">SYSTEM STATUS</p><h2>Trạng thái hệ thống</h2></div></div>
+            <div class="stack">
+              <article class="card state-card"><div class="state-icon violet">🚪</div><div class="state-info"><p>CỬA TỰ ĐỘNG</p><h3 id="door-value">Chưa xác định</h3><span id="door-desc">Chưa nhận dữ liệu từ cảm biến</span></div><span class="state-flag" id="door-flag">—</span></article>
+              <article class="card state-card" id="fire-card"><div class="state-icon coral">🚨</div><div class="state-info"><p>HỆ THỐNG BÁO CHÁY</p><h3 id="fire-value">Chưa xác định</h3><span id="fire-desc">Chưa nhận dữ liệu từ cảm biến</span></div><span class="state-flag" id="fire-flag">—</span></article>
+            </div>
+            <div class="warning-note"><span>ⓘ</span><span>Cảnh báo khí gas theo chương trình ESP32, không thay thế thiết bị báo cháy được chứng nhận.</span></div>
+          </section>
+          <section id="dieu-khien" class="section-block">
+            <div class="section-heading"><div><p class="eyebrow">DEVICE CONTROL</p><h2>Điều khiển thủ công</h2></div><span class="section-detail" id="command-hint">Cần đăng nhập để điều khiển</span></div>
+            <div class="stack">
+              <article class="card device-card"><div class="device-head"><span class="device-icon amber">💡</span><div class="device-info"><h3>Đèn phòng</h3><p>GPIO25 · LED</p></div><span class="device-state" id="light-state">Chưa kết nối</span></div><div class="device-actions"><button class="btn btn-warm" id="light-on" disabled>BẬT ĐÈN</button><button class="btn btn-secondary" id="light-off" disabled>TẮT ĐÈN</button></div><p class="device-feedback" id="light-feedback" aria-live="polite">Chờ trạng thái thực tế</p></article>
+              <article class="card device-card"><div class="device-head"><span class="device-icon mint">🌀</span><div class="device-info"><h3>Quạt gió mini</h3><p>GPIO26 · Relay</p></div><span class="device-state" id="fan-state">Chưa kết nối</span></div><div class="device-actions"><button class="btn btn-green" id="fan-on" disabled>BẬT QUẠT</button><button class="btn btn-secondary" id="fan-off" disabled>TẮT QUẠT</button></div><p class="device-feedback" id="fan-feedback" aria-live="polite">Chờ trạng thái thực tế</p></article>
+            </div>
+          </section>
+        </div>
+        <section id="lich-su-cua" class="section-block" aria-labelledby="history-heading">
+          <div class="section-heading"><div><p class="eyebrow">ENTRANCE HISTORY</p><h2 id="history-heading">Lịch sử phát hiện &amp; mở cửa</h2></div><span class="tag" id="history-mode">Chưa kết nối</span></div>
+          <div class="card history-card"><div class="history-toolbar"><p id="history-summary">Đăng nhập để xem lịch sử đã lưu trên Firebase.</p><label for="history-filter">Hiển thị <select id="history-filter"><option value="all">Tất cả sự kiện</option><option value="outside_detected">Phát hiện phía ngoài</option><option value="exit_requested">Mở cửa từ web</option></select></label></div><div class="history-scroll"><table class="history-table"><thead><tr><th scope="col">Ngày, giờ (UTC+7)</th><th scope="col">Sự kiện</th><th scope="col">Nguồn</th></tr></thead><tbody id="door-history-body"></tbody></table></div><p class="history-empty" id="history-empty">Chưa có sự kiện được ghi nhận.</p><p class="history-note">HC-SR04 ghi nhận người/vật phía ngoài; lệnh mở từ web là yêu cầu đi ra. Các sự kiện này chưa xác nhận một người đã đi qua cửa hoặc hướng di chuyển.</p></div>
+        </section>
+
+        <section id="nhat-ky" class="section-block log-section">
+          <div class="section-heading"><div><p class="eyebrow">SESSION NOTIFICATIONS</p><h2>Thông báo phiên làm việc</h2></div><button type="button" id="clear-log" class="clear-log">Xóa thông báo</button></div>
+          <div class="card log-card"><div class="log-list" id="log-list" aria-live="polite"><div class="log-item"><span class="log-marker"></span><span>Đang khởi tạo giao diện...</span><time>--:--</time></div></div></div>
+        </section>
+        <footer>© 2026 · SMART HOME ESP32 · Giao diện web Firebase <span>•</span> Dữ liệu chỉ có giá trị khi thiết bị đang kết nối.</footer>
+      </main>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
